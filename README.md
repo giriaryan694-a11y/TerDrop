@@ -317,8 +317,5 @@ print('Done')
 
 ---
 
-## License
-
-MIT — use freely, attribution appreciated.
 
 **TerDrop · Made by Aryan Giri · [github.com/giriaryan694-a11y](https://github.com/giriaryan694-a11y)**
