@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — TerDrop</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="login-wrapper">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <span class="big-icon">🛡️</span>
+      <h1>Admin Panel</h1>
+      <p>Localhost-only access · TerDrop</p>
+    </div>
+
+    <div class="alert alert-warning" style="font-size:0.78rem">
+      ⚠️ This portal is restricted to localhost (127.0.0.1) only.
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/login" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control"
+               placeholder="Admin username" required autofocus maxlength="32">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control"
+               placeholder="Admin password" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-100" style="margin-top:8px;background:#ef4444">
+        🔑 Sign In to Admin
+      </button>
+    </form>
+
+    <div style="display:flex; justify-content:center; margin-top:24px">
+      <a href="https://github.com/giriaryan694-a11y" target="_blank" rel="noopener" class="made-by">
+        <div class="made-by-avatar">AG</div>
+        <div class="made-by-text">
+          <span class="made-by-label">TerDrop Admin · Crafted by</span>
+          <span class="made-by-name">Aryan Giri <span class="handle">@giriaryan694-a11y</span></span>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

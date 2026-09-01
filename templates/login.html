@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+
+{% block fullpage %}
+<div class="login-wrapper">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <span class="big-icon">📦</span>
+      <h1>TerDrop</h1>
+      <p>Privacy-first secure file sharing</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('login') }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input type="text" id="username" name="username" class="form-control"
+               placeholder="Enter username" required autofocus
+               autocomplete="username" maxlength="32">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control"
+               placeholder="Enter password" required
+               autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 btn-lg" style="margin-top:8px">
+        🔑 Sign In
+      </button>
+    </form>
+
+    <div style="display:flex; justify-content:center; margin-top:24px">
+      <a href="https://github.com/giriaryan694-a11y" target="_blank" rel="noopener" class="made-by">
+        <div class="made-by-avatar">AG</div>
+        <div class="made-by-text">
+          <span class="made-by-label">TerDrop v1.0 · Crafted by</span>
+          <span class="made-by-name">Aryan Giri <span class="handle">@giriaryan694-a11y</span></span>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

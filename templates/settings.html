@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-title">Settings</div>
+<div class="page-subtitle">Preferences for your account.</div>
+
+{% if success %}
+<div class="alert alert-success mb-16" data-autodismiss>✅ {{ success }}</div>
+{% endif %}
+
+<div class="card mb-16" style="max-width:520px">
+  <div class="card-title mb-16">🔔 Chat Notifications</div>
+  <p class="text-muted text-sm mb-16">
+    Get notified in your browser when the admin replies to your chat, even
+    if this tab isn't focused. Your browser will ask for permission the
+    first time you turn this on.
+  </p>
+
+  <div class="d-flex align-center gap-12 mb-16">
+    <span id="browserPermBadge" class="badge badge-muted">Checking…</span>
+  </div>
+
+  <button id="enableBrowserNotif" class="btn btn-primary">
+    🔔 Enable Browser Notifications
+  </button>
+
+  <hr class="divider">
+
+  <form method="POST" action="{{ url_for('settings_page') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-check mb-16">
+      <input type="checkbox" name="notifications_enabled"
+             {{ 'checked' if user.get('notifications_enabled', True) else '' }}>
+      <span>Notify me about new chat replies (server-side preference)</span>
+    </label>
+    <button type="submit" class="btn btn-ghost">💾 Save Preference</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const badge = document.getElementById("browserPermBadge");
+  const btn   = document.getElementById("enableBrowserNotif");
+
+  function refreshBadge() {
+    if (!("Notification" in window)) {
+      badge.textContent = "Not supported in this browser";
+      badge.className = "badge badge-muted";
+      btn.disabled = true;
+      return;
+    }
+    const perm = Notification.permission;
+    if (perm === "granted") {
+      badge.textContent = "✅ Enabled";
+      badge.className = "badge badge-success";
+      btn.textContent = "🔔 Notifications Enabled";
+      btn.disabled = true;
+    } else if (perm === "denied") {
+      badge.textContent = "🚫 Blocked — enable in browser site settings";
+      badge.className = "badge badge-danger";
+      btn.disabled = true;
+    } else {
+      badge.textContent = "Not enabled yet";
+      badge.className = "badge badge-warning";
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener("click", async () => {
+    const result = await Notification.requestPermission();
+    refreshBadge();
+    if (result === "granted") {
+      localStorage.setItem("td_notif_enabled", "1");
+      if (typeof showNotification === "function") {
+        showNotification("TerDrop", "Notifications are on. You'll be alerted when the admin replies.", "td-confirm");
+      }
+    }
+  });
+
+  refreshBadge();
+})();
+</script>
+{% endblock %}

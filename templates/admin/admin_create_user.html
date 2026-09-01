@@ -1,0 +1,47 @@
+{% extends "admin_base.html" %}
+{% block title %}Create User{% endblock %}
+{% block page_title %}Create User{% endblock %}
+
+{% block content %}
+<div class="page-title">Create New User</div>
+<div class="page-subtitle">Set credentials and access rules.</div>
+
+<div class="card" style="max-width:480px">
+  {% if error %}<div class="alert alert-error">⚠️ {{ error }}</div>{% endif %}
+  {% if success %}<div class="alert alert-success" data-autodismiss>✅ {{ success }}</div>{% endif %}
+
+  <form method="POST" action="/users/create">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control"
+             placeholder="3–32 chars, letters/digits/_/-" required maxlength="32">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control"
+             placeholder="Minimum 8 characters" required minlength="8">
+      <div class="form-hint">Stored as Argon2id hash (OWASP recommended).</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Account Expires In (minutes)</label>
+      <input type="number" name="expire_minutes" class="form-control"
+             placeholder="e.g. 20 for 20 minutes. Leave blank for never." min="1">
+      <div class="form-hint">Leave blank for a permanent account.</div>
+    </div>
+
+    <div class="alert alert-info" style="font-size:0.8rem">
+      ℹ️ New accounts are always regular users. TerDrop supports a single
+      admin — the person operating this device via Termux.
+    </div>
+
+    <div class="d-flex gap-8 mt-16">
+      <button type="submit" class="btn btn-primary">➕ Create User</button>
+      <a href="/users" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

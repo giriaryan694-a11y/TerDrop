@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Chat{% endblock %}
+{% block page_title %}Chat with Admin{% endblock %}
+
+{% block content %}
+<div class="page-title">Chat with Admin</div>
+<div class="page-subtitle">Messages are end-to-end private. Admins respond here.</div>
+
+<div class="chat-container">
+  <div class="chat-messages" id="chatMessages">
+    {% if messages %}
+      {% for m in messages %}
+      {% set is_me = m.sender_role == current_user.role %}
+      <div class="chat-msg {{ 'from-me' if is_me else 'from-other' }}" data-ts="{{ m.timestamp }}">
+        <div class="chat-bubble">{{ m.content }}</div>
+        <div class="chat-meta">
+          {{ 'You' if is_me else 'Admin' }} ·
+          {{ m.timestamp | int }}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:32px">
+        <div class="empty-icon">💬</div>
+        <p>No messages yet. Say hello!</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('chat') }}" class="chat-input-row" id="chatForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="message" id="chatInput" class="form-control"
+           placeholder="Type a message… (max 2000 chars)"
+           maxlength="2000" autocomplete="off" required>
+    <button type="submit" class="btn btn-primary">Send →</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  initChat("{{ url_for('chat_poll') }}", "{{ current_user.role }}");
+
+  // Format timestamps
+  document.querySelectorAll(".chat-meta").forEach(el => {
+    const ts = parseFloat(el.closest("[data-ts]")?.dataset.ts || "0");
+    if (ts) {
+      const d = new Date(ts * 1000);
+      const parts = el.textContent.trim().split("·");
+      el.textContent = parts[0].trim() + " · " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    }
+  });
+
+  // Submit on Enter (not Shift+Enter)
+  document.getElementById("chatInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById("chatForm").submit();
+    }
+  });
+
+  // Scroll to bottom on load
+  scrollChat();
+</script>
+{% endblock %}

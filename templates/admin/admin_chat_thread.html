@@ -1,0 +1,68 @@
+{% extends "admin_base.html" %}
+{% block title %}Chat — {{ target.username }}{% endblock %}
+{% block page_title %}Chat with {{ target.username }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center gap-12 mb-16">
+  <a href="/chat" class="btn btn-ghost btn-sm">← All Threads</a>
+  <div class="d-flex align-center gap-8">
+    <div class="avatar" style="background:#ef4444">{{ target.username[0].upper() }}</div>
+    <strong>{{ target.username }}</strong>
+    <span class="badge badge-muted">{{ target.role }}</span>
+  </div>
+</div>
+
+<div class="chat-container">
+  <div class="chat-messages" id="chatMessages">
+    {% if messages %}
+      {% for m in messages %}
+      {% set is_me = m.sender_role == 'admin' %}
+      <div class="chat-msg {{ 'from-me' if is_me else 'from-other' }}" data-ts="{{ m.timestamp }}">
+        <div class="chat-bubble">{{ m.content }}</div>
+        <div class="chat-meta">
+          {{ 'You (Admin)' if is_me else target.username }} ·
+          <span class="msg-time">{{ m.timestamp }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:32px">
+        <div class="empty-icon">💬</div>
+        <p>No messages yet.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST" action="/chat/{{ target.id }}" class="chat-input-row" id="chatForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="message" id="chatInput" class="form-control"
+           placeholder="Reply to {{ target.username }}…"
+           maxlength="2000" autocomplete="off" required>
+    <button type="submit" class="btn btn-primary" style="background:#ef4444">Send →</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  initChat("/chat/{{ target.id }}/poll", "admin");
+
+  document.querySelectorAll(".msg-time").forEach(el => {
+    const ts = parseFloat(el.closest("[data-ts]")?.dataset.ts || "0");
+    if (ts) el.textContent = new Date(ts * 1000).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  });
+
+  document.getElementById("chatInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById("chatForm").submit();
+    }
+  });
+
+  scrollChat();
+</script>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "admin_base.html" %}
+{% block title %}Edit {{ u.username }}{% endblock %}
+{% block page_title %}Edit User{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center gap-12 mb-24">
+  <a href="/users" class="btn btn-ghost btn-sm">← Back</a>
+  <div class="page-title" style="margin:0">{{ u.username }}</div>
+  <span class="badge {{ 'badge-danger' if u.role == 'admin' else 'badge-muted' }}">{{ u.role }}</span>
+  {% if u.get('active', True) %}<span class="badge badge-success">Active</span>
+  {% else %}<span class="badge badge-warning">Disabled</span>{% endif %}
+</div>
+
+{% if error %}<div class="alert alert-error mb-16">⚠️ {{ error }}</div>{% endif %}
+{% if success %}<div class="alert alert-success mb-16" data-autodismiss>✅ {{ success }}</div>{% endif %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+
+  <!-- Change Password -->
+  <div class="card">
+    <div class="card-title mb-16">🔑 Change Password</div>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="change_password">
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <input type="password" name="new_password" class="form-control" minlength="8" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Update Password</button>
+    </form>
+  </div>
+
+  <!-- Change Username -->
+  <div class="card">
+    <div class="card-title mb-16">✏️ Change Username</div>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="change_username">
+      <div class="form-group">
+        <label class="form-label">New Username</label>
+        <input type="text" name="new_username" class="form-control"
+               value="{{ u.username }}" maxlength="32" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Update Username</button>
+    </form>
+  </div>
+
+  <!-- Set Expiry -->
+  <div class="card">
+    <div class="card-title mb-16">⏰ Account Expiry</div>
+    <div class="text-muted text-sm mb-12">
+      Current:
+      {% if u.expires_at %}
+        {{ u.expires_at | int }} (Unix)
+      {% else %}
+        Never expires
+      {% endif %}
+    </div>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="set_expiry">
+      <div class="form-group">
+        <label class="form-label">Expire In (minutes)</label>
+        <input type="number" name="expire_minutes" class="form-control"
+               placeholder="Leave blank to remove expiry" min="1">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Set Expiry</button>
+    </form>
+  </div>
+
+  <!-- Storage quota -->
+  <div class="card">
+    <div class="card-title mb-16">💾 Storage Quota</div>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="set_quota">
+      <div class="form-group">
+        <label class="form-label">Quota (MB)</label>
+        <input type="number" name="quota_mb" class="form-control"
+               value="{{ u.get('storage_quota_mb', 100) }}" min="1" max="10240">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Set Quota</button>
+    </form>
+  </div>
+
+  <!-- Toggle Active -->
+  <div class="card">
+    <div class="card-title mb-16">🔒 Account Status</div>
+    <p class="text-muted text-sm mb-16">
+      Disabling logs out all sessions and prevents login.
+    </p>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="toggle_active">
+      <button type="submit"
+              class="btn {{ 'btn-danger' if u.get('active', True) else 'btn-success' }}">
+        {{ '🚫 Disable Account' if u.get('active', True) else '✅ Enable Account' }}
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}TerDrop{% endblock %} — TerDrop</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#5b6af0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  {% block head %}{% endblock %}
+</head>
+<body {% if current_user %}data-chat-poll-url="{{ url_for('chat_poll') }}" data-user-role="{{ current_user.role }}"{% endif %}>
+
+{% if current_user %}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">📦</div>
+    <div>
+      <div class="logo-text">TerDrop</div>
+      <div class="logo-sub">Secure File Share</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Navigation</div>
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <span class="nav-icon">🗂️</span> My Files
+    </a>
+    <a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}">
+      <span class="nav-icon">⬆️</span> Upload File
+    </a>
+    <a href="{{ url_for('downloads') }}" class="nav-link {% if request.endpoint == 'downloads' %}active{% endif %}">
+      <span class="nav-icon">📥</span> Downloads
+    </a>
+    <a href="{{ url_for('chat') }}" class="nav-link {% if request.endpoint == 'chat' %}active{% endif %}">
+      <span class="nav-icon">💬</span> Chat with Admin
+      {% if unread_count > 0 %}
+        <span class="nav-badge">{{ unread_count }}</span>
+      {% endif %}
+    </a>
+    <a href="{{ url_for('settings_page') }}" class="nav-link {% if request.endpoint == 'settings_page' %}active{% endif %}">
+      <span class="nav-icon">⚙️</span> Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="avatar">{{ current_user.username[0].upper() }}</div>
+      <div>
+        <div style="font-weight:600;color:var(--text-primary);font-size:0.82rem;">{{ current_user.username }}</div>
+        <div>user</div>
+      </div>
+    </div>
+    <form action="{{ url_for('logout') }}" method="post" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-ghost btn-sm w-100">🚪 Sign Out</button>
+    </form>
+    <a href="https://github.com/giriaryan694-a11y" target="_blank" rel="noopener" class="made-by">
+      <div class="made-by-avatar">AG</div>
+      <div class="made-by-text">
+        <span class="made-by-label">Crafted by</span>
+        <span class="made-by-name">Aryan Giri <span class="handle">@giriaryan694-a11y</span></span>
+      </div>
+    </a>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">☰</button>
+    <span class="topbar-title">{% block page_title %}TerDrop{% endblock %}</span>
+    <div class="topbar-actions">
+      <div class="theme-switcher">
+        <button class="theme-btn" data-theme="dark" title="Dark">🌙</button>
+        <button class="theme-btn" data-theme="light" title="Light">☀️</button>
+        <button class="theme-btn" data-theme="eye" title="Eye Saver">🍯</button>
+      </div>
+      {% if tunnel_url %}
+      <a href="{{ tunnel_url }}" target="_blank" class="btn btn-ghost btn-sm" data-tip="Public URL">
+        🔗
+      </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="page-body">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+{% else %}
+  {% block fullpage %}{% endblock %}
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/qrcode.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

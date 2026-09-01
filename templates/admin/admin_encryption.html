@@ -1,0 +1,85 @@
+{% extends "admin_base.html" %}
+{% block title %}Encryption{% endblock %}
+{% block page_title %}Encryption Control{% endblock %}
+
+{% block content %}
+<div class="page-title">End-to-End Encryption</div>
+<div class="page-subtitle">
+  Files are encrypted in the user's browser before upload (AES-256-GCM),
+  with the key wrapped by RSA-OAEP. Only this server's private key can
+  unwrap it — Cloudflare and the network see only ciphertext.
+</div>
+
+<!-- Toggle -->
+<div class="card mb-16">
+  <div class="card-header">
+    <span class="card-title">🔐 Encryption Status</span>
+    <span class="badge {{ 'badge-success' if settings.encryption_enabled else 'badge-warning' }}">
+      {{ '🔒 ON' if settings.encryption_enabled else '🔓 OFF' }}
+    </span>
+  </div>
+
+  <p class="text-muted text-sm mb-16">
+    {% if settings.encryption_enabled %}
+      New uploads are encrypted client-side before they leave the browser.
+      Downloads are decrypted here on the server for authorized users.
+    {% else %}
+      New uploads are stored as plaintext. Existing encrypted files remain
+      encrypted and still decrypt normally on download.
+    {% endif %}
+  </p>
+
+  <form method="POST" action="/encryption/toggle">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn {{ 'btn-danger' if settings.encryption_enabled else 'btn-success' }} btn-lg">
+      {{ '🔓 Turn Encryption OFF' if settings.encryption_enabled else '🔒 Turn Encryption ON' }}
+    </button>
+  </form>
+</div>
+
+<!-- Key info -->
+<div class="card mb-16">
+  <div class="card-title mb-16">🔑 Server Keypair</div>
+  <div class="tunnel-url-box" style="word-break:break-all">
+    <span class="dot dot-green"></span>
+    <span>RSA-3072 · Fingerprint: {{ fingerprint }}</span>
+  </div>
+  <div class="text-muted text-sm mt-12">
+    Generated automatically on first run. The private key never leaves this
+    device and is stored at <code class="text-mono">keys/private_key.pem</code>
+    with owner-only file permissions.
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid mb-16">
+  <div class="stat-card">
+    <div class="stat-icon">🔒</div>
+    <div class="stat-value">{{ encrypted_count }}</div>
+    <div class="stat-label">Encrypted Files</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🔓</div>
+    <div class="stat-value">{{ plain_count }}</div>
+    <div class="stat-label">Plaintext Files</div>
+  </div>
+</div>
+
+<!-- Key rotation -->
+<div class="card">
+  <div class="card-title mb-12">⚠️ Rotate Keypair</div>
+  <p class="text-muted text-sm mb-16">
+    Generates a brand-new RSA keypair. <strong class="text-danger">Any files
+    currently encrypted under the old key become permanently
+    undecryptable</strong> — there is no way to recover them afterward.
+    Only do this if you suspect the private key has been compromised.
+  </p>
+  <form method="POST" action="/encryption/rotate"
+        onsubmit="return confirm('This will permanently break access to all {{ encrypted_count }} currently encrypted file(s). This cannot be undone. Continue?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-danger" {{ 'disabled' if encrypted_count == 0 else '' }}>
+      🔄 Rotate Keypair
+    </button>
+  </form>
+</div>
+{% endblock %}

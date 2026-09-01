@@ -1,0 +1,87 @@
+{% extends "admin_base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-title">System Overview</div>
+<div class="page-subtitle">Real-time stats and tunnel status.</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div class="stat-value">{{ stats.users }}</div>
+    <div class="stat-label">Total Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📁</div>
+    <div class="stat-value">{{ stats.files }}</div>
+    <div class="stat-label">Files Stored</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💾</div>
+    <div class="stat-value">{{ (stats.total_size / 1048576)|round(1) }}</div>
+    <div class="stat-label">Total MB Used</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💬</div>
+    <div class="stat-value" style="{{ 'color:var(--danger)' if stats.unread_msgs else '' }}">
+      {{ stats.unread_msgs }}
+    </div>
+    <div class="stat-label">Unread Messages</div>
+  </div>
+</div>
+
+<!-- Tunnel -->
+<div class="card mb-24">
+  <div class="card-header">
+    <span class="card-title">🌐 Cloudflare Tunnel</span>
+    <div class="d-flex gap-8">
+      <button id="tunnelStart" class="btn btn-success btn-sm">▶ Start</button>
+      <button id="tunnelStop" class="btn btn-danger btn-sm">■ Stop</button>
+      <button id="tunnelRestart" class="btn btn-ghost btn-sm">↺ New URL</button>
+      <a href="/tunnel" class="btn btn-ghost btn-sm">Details →</a>
+    </div>
+  </div>
+
+  <div class="tunnel-url-box">
+    <span class="dot {{ 'dot-green pulse' if tunnel_status.running else 'dot-red' }}" id="tunnelDot"></span>
+    <span id="tunnelUrl">{{ tunnel_status.url or ('Running — waiting for URL…' if tunnel_status.running else 'Tunnel not running') }}</span>
+    {% if tunnel_status.url %}
+    <button class="btn btn-ghost btn-sm" onclick="copyText('{{ tunnel_status.url }}', this)">📋 Copy</button>
+    {% endif %}
+  </div>
+
+  <div class="d-flex gap-16 align-center flex-wrap mt-16">
+    <div id="qrcode" data-initial-url="{{ tunnel_status.url or '' }}" style="background:#fff;padding:10px;border-radius:var(--radius-sm);line-height:0;min-height:140px;min-width:140px;display:flex;align-items:center;justify-content:center">
+      {% if not tunnel_status.running or not tunnel_status.url %}
+      <span class="text-sm" style="color:#999">No active link</span>
+      {% endif %}
+    </div>
+    <p class="text-muted text-sm" style="flex:1;min-width:180px;margin:0">
+      Scan to open the public link on another device — updates
+      automatically when the tunnel starts, stops, or restarts.
+    </p>
+  </div>
+
+  {% if tun_log %}
+  <div class="log-box mt-12">{{ tun_log | join('\n') }}</div>
+  {% endif %}
+</div>
+
+<!-- Quick links -->
+<div class="d-flex gap-12 flex-wrap">
+  <a href="/upload" class="btn btn-primary">⬆️ Upload a File</a>
+  <a href="/users/create" class="btn btn-ghost">➕ Create User</a>
+  <a href="/users" class="btn btn-ghost">👥 Manage Users</a>
+  <a href="/files" class="btn btn-ghost">🗂️ Manage Files</a>
+  <a href="/chat" class="btn btn-ghost">
+    💬 Chat
+    {% if stats.unread_msgs %}<span class="nav-badge">{{ stats.unread_msgs }}</span>{% endif %}
+  </a>
+</div>
+<p class="text-muted text-sm mt-8">
+  Upload directly here — pick recipients right on the upload form, or
+  share it later from <a href="/files">Files</a> → 🔐 Perms.
+</p>
+{% endblock %}

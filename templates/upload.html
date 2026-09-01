@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Upload File{% endblock %}
+{% block page_title %}Upload File{% endblock %}
+
+{% block content %}
+<div class="page-title">Upload File</div>
+<div class="page-subtitle">
+  Files are stored securely on the server.
+  {% if encryption_enabled %}
+    <span class="badge badge-success" style="margin-left:6px">🔒 End-to-end encryption ON</span>
+  {% else %}
+    <span class="badge badge-warning" style="margin-left:6px">🔓 Encryption OFF</span>
+  {% endif %}
+</div>
+
+<div class="card" style="max-width:560px">
+
+  <div id="alertBox">
+    {% if error %}
+    <div class="alert alert-error">⚠️ {{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success" data-autodismiss>✅ {{ success }}</div>
+    {% endif %}
+  </div>
+
+  <form id="uploadForm" method="POST" enctype="multipart/form-data" action="{{ url_for('upload') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label class="upload-zone" id="uploadZone" for="fileInput">
+      <input type="file" id="fileInput" name="file" style="display:none">
+      <div class="upload-icon">📁</div>
+      <p><strong>Tap to browse</strong> or drag & drop a file</p>
+      <small>Max {{ max_mb }} MB · Images, Video, Audio, PDF, ZIP, Docs</small>
+    </label>
+
+    <div id="fileInfo" style="display:none;margin-top:10px"></div>
+
+    <div class="form-group mt-16">
+      <label class="form-label">Share with (optional)</label>
+      {% if grantable_users %}
+      <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px">
+        {% for u in grantable_users %}
+        <label class="form-check mb-8">
+          <input type="checkbox" name="share_with" value="{{ u.id }}">
+          <span>{{ u.username }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="form-hint">
+        Nobody selected? Only you (and the admin) will be able to see this
+        file. You can share it later from Downloads → ask the admin, or
+        upload again with recipients checked.
+      </div>
+      {% else %}
+      <div class="alert alert-info" style="font-size:0.82rem;margin:0">
+        ℹ️ No other accounts exist yet — this file will be visible only to
+        you (and the admin). Once other users are added, you'll be able to
+        pick recipients here.
+      </div>
+      {% endif %}
+    </div>
+
+    <div id="uploadProgress" style="display:none;margin-top:12px">
+      <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+      <div class="text-muted text-sm mt-4" id="progressLabel">Preparing…</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg w-100 mt-16" id="uploadBtn" disabled>
+      ⬆️ Select a file first
+    </button>
+  </form>
+
+  <hr class="divider">
+
+  <div class="text-muted text-sm">
+    <strong>Security:</strong> Filenames are sanitized. Path traversal and disallowed
+    file types are blocked.
+    {% if encryption_enabled %}
+      Files are encrypted <strong>in your browser</strong> before upload — the
+      server only ever stores ciphertext.
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/crypto.js') }}"></script>
+<script>
+(function () {
+  const zone        = document.getElementById("uploadZone");
+  const input       = document.getElementById("fileInput");
+  const form        = document.getElementById("uploadForm");
+  const info        = document.getElementById("fileInfo");
+  const uploadBtn   = document.getElementById("uploadBtn");
+  const progressBox = document.getElementById("uploadProgress");
+  const progressBar = document.getElementById("progressBar");
+  const progressLbl = document.getElementById("progressLabel");
+  const encryptionEnabled = {{ 'true' if encryption_enabled else 'false' }};
+
+  let selectedFile = null;
+
+  zone.addEventListener("dragover", e => {
+    e.preventDefault();
+    zone.classList.add("dragover");
+  });
+  zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("dragover");
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) selectFile(file);
+  });
+
+  input.addEventListener("change", () => {
+    if (input.files && input.files[0]) selectFile(input.files[0]);
+  });
+
+  function selectFile(file) {
+    selectedFile = file;
+    const mb = (file.size / 1048576).toFixed(2);
+    info.style.display = "block";
+    info.className = "alert alert-info";
+    info.textContent = `${file.name} (${mb} MB)`;
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = encryptionEnabled ? "🔒 Encrypt & Upload" : "⬆️ Upload File";
+  }
+
+  function setProgress(pct, label) {
+    progressBox.style.display = "block";
+    progressBar.style.width = pct + "%";
+    if (label) progressLbl.textContent = label;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!selectedFile) return;
+
+    uploadBtn.disabled = true;
+    const originalLabel = uploadBtn.textContent;
+
+    try {
+      const formData = new FormData();
+      formData.append("csrf_token", document.querySelector('input[name="csrf_token"]').value);
+      formData.append("original_filename", selectedFile.name);
+
+      document.querySelectorAll('input[name="share_with"]:checked').forEach(cb => {
+        formData.append("share_with", cb.value);
+      });
+
+      if (encryptionEnabled && TerDropCrypto.isSupported()) {
+        uploadBtn.textContent = "🔐 Encrypting…";
+        setProgress(5, "Fetching encryption key…");
+
+        const result = await TerDropCrypto.encryptFile(selectedFile, (pct) => {
+          setProgress(pct, pct < 70 ? "Encrypting in your browser…" : "Wrapping key…");
+        });
+
+        formData.append("file", result.ciphertextBlob, selectedFile.name + ".enc");
+        formData.append("encrypted", "1");
+        formData.append("iv", result.ivB64);
+        formData.append("wrapped_key", result.wrappedKeyB64);
+        formData.append("plaintext_size", String(result.plaintextSize));
+
+        setProgress(85, "Uploading encrypted file…");
+      } else {
+        formData.append("file", selectedFile, selectedFile.name);
+        formData.append("encrypted", "0");
+        setProgress(30, "Uploading…");
+      }
+
+      uploadBtn.textContent = "⬆️ Uploading…";
+
+      const res = await fetch(form.action, {
+        method: "POST",
+        body: formData,
+        headers: { "X-CSRF-Token": document.querySelector('input[name="csrf_token"]').value },
+      });
+
+      setProgress(100, "Done.");
+
+      if (res.ok) {
+        const html = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const newAlerts = doc.getElementById("alertBox");
+        if (newAlerts) document.getElementById("alertBox").innerHTML = newAlerts.innerHTML;
+        selectedFile = null;
+        input.value = "";
+        info.style.display = "none";
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "⬆️ Select a file first";
+        setTimeout(() => { progressBox.style.display = "none"; progressBar.style.width = "0%"; }, 800);
+      } else {
+        throw new Error("Upload failed with status " + res.status);
+      }
+    } catch (err) {
+      console.error(err);
+      document.getElementById("alertBox").innerHTML =
+        `<div class="alert alert-error">⚠️ Upload failed: ${err.message || "unknown error"}</div>`;
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = originalLabel;
+      progressBox.style.display = "none";
+    }
+  });
+})();
+</script>
+{% endblock %}

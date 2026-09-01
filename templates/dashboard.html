@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}My Files{% endblock %}
+{% block page_title %}My Files{% endblock %}
+
+{% block content %}
+<div class="page-title">My Files</div>
+<div class="page-subtitle">Files shared with you or uploaded by you.</div>
+
+<!-- Share via QR -->
+<div class="card mb-24" id="shareCard">
+  <div class="card-header">
+    <span class="card-title">📲 Share This Site</span>
+    <span id="shareStatusBadge" class="badge badge-muted">Checking tunnel…</span>
+  </div>
+
+  <div id="shareContent" style="display:none">
+    <div class="d-flex gap-16 align-center flex-wrap">
+      <div id="qrcode" style="background:#fff;padding:10px;border-radius:var(--radius-sm);line-height:0"></div>
+      <div style="flex:1;min-width:200px">
+        <p class="text-muted text-sm mb-8">
+          Scan this code on another device to open this exact link — no
+          typing required. It updates automatically if the link changes.
+        </p>
+        <div class="tunnel-url-box" style="margin:0">
+          <span class="dot dot-green pulse"></span>
+          <span id="shareUrlText" class="text-mono" style="word-break:break-all;font-size:0.78rem">—</span>
+        </div>
+        <button class="btn btn-ghost btn-sm mt-8" id="copyShareUrl">📋 Copy Link</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shareOffline" style="display:none">
+    <div class="empty-state" style="padding:20px">
+      <p class="text-muted text-sm">
+        The public tunnel isn't running right now — ask the admin to start it
+        from the Tunnel Control panel. This card will update automatically
+        once it's back online.
+      </p>
+    </div>
+  </div>
+</div>
+
+{% if files %}
+<div class="file-grid">
+  {% for f in files %}
+  {% set ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else '' %}
+  {% set icon = '🖼️' if ext in ('jpg','jpeg','png','gif','webp','svg') else
+               '📹' if ext in ('mp4','mov','avi','mkv') else
+               '🎵' if ext in ('mp3','wav','ogg','flac') else
+               '📄' if ext in ('pdf',) else
+               '📦' if ext in ('zip','gz','tar','7z') else
+               '📝' if ext in ('txt','md','csv','json') else '📁' %}
+
+  <div class="file-card fade-in">
+    <div class="d-flex justify-between align-center">
+      <div class="file-icon">{{ icon }}</div>
+      {% if f.encrypted %}
+      <span class="badge badge-success" title="End-to-end encrypted">🔒</span>
+      {% endif %}
+    </div>
+    <div class="file-name" title="{{ f.filename }}">
+      {{ f.filename[:32] }}{% if f.filename|length > 32 %}…{% endif %}
+    </div>
+    <div class="file-meta">
+      {{ (f._display_size / 1048576)|round(2) }} MB
+      · {{ f._display_mime.split('/')[0] }}
+    </div>
+    <div class="file-meta text-muted" style="font-size:0.72rem">
+      {{ f._uploaded_str }} · By {{ f._owner_name }}
+    </div>
+    <div class="file-actions">
+      <a href="{{ url_for('download', file_id=f.id) }}" class="btn btn-primary btn-sm">
+        ⬇ Download
+      </a>
+      {% if f._display_mime.startswith('image') or f._display_mime == 'application/pdf' or f._display_mime.startswith('text') %}
+      <a href="{{ url_for('view_file', file_id=f.id) }}" target="_blank" class="btn btn-ghost btn-sm">
+        👁 View
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state card">
+  <div class="empty-icon">📭</div>
+  <p>No files available yet.</p>
+  <a href="{{ url_for('upload') }}" class="btn btn-primary mt-12">⬆ Upload your first file</a>
+</div>
+{% endif %}
+
+<div style="display:flex; justify-content:center; margin-top:32px">
+  <a href="https://github.com/giriaryan694-a11y" target="_blank" rel="noopener" class="made-by">
+    <div class="made-by-avatar">AG</div>
+    <div class="made-by-text">
+      <span class="made-by-label">TerDrop · Crafted by</span>
+      <span class="made-by-name">Aryan Giri <span class="handle">@giriaryan694-a11y</span></span>
+    </div>
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const badge      = document.getElementById("shareStatusBadge");
+  const content     = document.getElementById("shareContent");
+  const offline     = document.getElementById("shareOffline");
+  const urlText     = document.getElementById("shareUrlText");
+  const copyBtn     = document.getElementById("copyShareUrl");
+  const qrContainer = document.getElementById("qrcode");
+
+  let qr = null;
+  let lastUrl = null;
+
+  function renderQr(url) {
+    if (lastUrl === url) return;  // no change — skip regenerating
+    lastUrl = url;
+
+    qrContainer.innerHTML = "";
+    qr = new QRCode(qrContainer, {
+      text: url,
+      width: 140,
+      height: 140,
+      colorDark: "#0d0f14",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  }
+
+  function updateShareCard(data) {
+    if (data.running && data.url) {
+      badge.textContent = "🟢 Live";
+      badge.className = "badge badge-success";
+      content.style.display = "block";
+      offline.style.display = "none";
+      urlText.textContent = data.url;
+      renderQr(data.url);
+    } else {
+      badge.textContent = "🔴 Offline";
+      badge.className = "badge badge-danger";
+      content.style.display = "none";
+      offline.style.display = "block";
+      lastUrl = null;
+    }
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch("/api/tunnel-url");
+      const data = await res.json();
+      updateShareCard(data);
+    } catch (_) {
+      // keep last known state on transient network errors
+    }
+  }
+
+  copyBtn.addEventListener("click", () => {
+    if (!lastUrl) return;
+    navigator.clipboard.writeText(lastUrl).then(() => {
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = "✓ Copied";
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    });
+  });
+
+  poll();
+  setInterval(poll, 4000);
+})();
+</script>
+{% endblock %}

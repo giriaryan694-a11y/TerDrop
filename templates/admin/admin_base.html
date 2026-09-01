@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Admin{% endblock %} — TerDrop Admin</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body {% if current_user %}data-chat-poll-url="/chat/poll-all" data-user-role="admin"{% endif %}>
+
+{% if current_user %}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon" style="background:#ef4444">🛡️</div>
+    <div>
+      <div class="logo-text">TerDrop</div>
+      <div class="logo-sub" style="color:#ef9999">Admin Panel</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="/dashboard" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+
+    <div class="nav-section-label">Management</div>
+    <a href="/upload" class="nav-link {% if request.endpoint == 'admin_upload' %}active{% endif %}">
+      <span class="nav-icon">⬆️</span> Upload File
+    </a>
+    <a href="/users" class="nav-link {% if 'user' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">👥</span> Users
+    </a>
+    <a href="/files" class="nav-link {% if 'file' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">🗂️</span> Files
+    </a>
+
+    <div class="nav-section-label">Communication</div>
+    <a href="/chat" class="nav-link {% if 'chat' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">💬</span> Chat Threads
+      {% if unread_count > 0 %}
+        <span class="nav-badge">{{ unread_count }}</span>
+      {% endif %}
+    </a>
+
+    <div class="nav-section-label">Infrastructure</div>
+    <a href="/tunnel" class="nav-link {% if 'tunnel' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">🌐</span> Tunnel Control
+      <span class="nav-badge" style="background:{{ '#22c55e' if tunnel_status.running else '#ef4444' }};font-size:0.5rem">
+        {{ '●' if tunnel_status.running else '○' }}
+      </span>
+    </a>
+    <a href="/encryption" class="nav-link {% if 'encryption' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">🔐</span> Encryption
+      <span class="nav-badge" style="background:{{ '#22c55e' if encryption_enabled else '#8b93b8' }};font-size:0.5rem">
+        {{ '●' if encryption_enabled else '○' }}
+      </span>
+    </a>
+    <a href="/notifications" class="nav-link {% if 'notification' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">🔔</span> Notifications
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="avatar" style="background:#ef4444">{{ current_user.username[0].upper() }}</div>
+      <div>
+        <div style="font-weight:600;color:var(--text-primary);font-size:0.82rem;">{{ current_user.username }}</div>
+        <div style="color:#ef9999">Administrator</div>
+      </div>
+    </div>
+    <form action="/logout" method="post" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-ghost btn-sm w-100">🚪 Sign Out</button>
+    </form>
+    <a href="https://github.com/giriaryan694-a11y" target="_blank" rel="noopener" class="made-by">
+      <div class="made-by-avatar">AG</div>
+      <div class="made-by-text">
+        <span class="made-by-label">Crafted by</span>
+        <span class="made-by-name">Aryan Giri <span class="handle">@giriaryan694-a11y</span></span>
+      </div>
+    </a>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    <span class="topbar-title">
+      <span style="color:var(--danger);font-size:0.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-right:8px">ADMIN</span>
+      {% block page_title %}Dashboard{% endblock %}
+    </span>
+    <div class="topbar-actions">
+      <div class="theme-switcher">
+        <button class="theme-btn" data-theme="dark">🌙</button>
+        <button class="theme-btn" data-theme="light">☀️</button>
+        <button class="theme-btn" data-theme="eye">🍯</button>
+      </div>
+      <div class="tunnel-url-box topbar-tunnel-chip" title="Active public URL">
+        <span class="dot {{ 'dot-green pulse' if tunnel_status.running else 'dot-red' }}"></span>
+        <span class="topbar-tunnel-text">
+          {{ tunnel_status.url or 'Tunnel offline' }}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-body">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+{% else %}
+  {% block fullpage %}{% endblock %}
+{% endif %}
+
+<script src="/static/js/qrcode.min.js"></script>
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

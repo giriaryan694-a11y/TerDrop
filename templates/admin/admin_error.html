@@ -1,0 +1,12 @@
+{% extends "admin_base.html" %}
+{% block title %}Error {{ code }}{% endblock %}
+{% block page_title %}Error{% endblock %}
+
+{% block content %}
+<div style="text-align:center;padding:64px 24px">
+  <div style="font-size:4rem;margin-bottom:12px">⚠️</div>
+  <h1 style="font-size:3rem;font-weight:700;color:var(--text-muted);font-family:var(--font-mono)">{{ code }}</h1>
+  <p style="font-size:1.1rem;color:var(--text-secondary);margin:12px 0 28px">{{ msg }}</p>
+  <a href="/dashboard" class="btn btn-primary btn-lg" style="background:#ef4444">← Back to Dashboard</a>
+</div>
+{% endblock %}

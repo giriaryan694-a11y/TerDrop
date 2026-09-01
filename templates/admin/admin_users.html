@@ -1,0 +1,84 @@
+{% extends "admin_base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-between align-center mb-24">
+  <div>
+    <div class="page-title">Users</div>
+    <div class="page-subtitle">{{ users|length }} accounts registered.</div>
+  </div>
+  <a href="/users/create" class="btn btn-primary">➕ New User</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Expires</th>
+          <th>Quota</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div class="d-flex align-center gap-8">
+              <div class="avatar" style="width:28px;height:28px;font-size:0.72rem;{{ 'background:#ef4444' if u.role == 'admin' else '' }}">
+                {{ u.username[0].upper() }}
+              </div>
+              <span class="text-mono">{{ u.username }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="badge {{ 'badge-danger' if u.role == 'admin' else 'badge-muted' }}">
+              {{ '🛡️ admin' if u.role == 'admin' else '👤 user' }}
+            </span>
+          </td>
+          <td>
+            {% if u._expired %}
+              <span class="badge badge-warning">⏰ Expired</span>
+            {% elif not u.get('active', True) %}
+              <span class="badge badge-danger">🚫 Disabled</span>
+            {% else %}
+              <span class="badge badge-success">✅ Active</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u._expires_in is not none %}
+              {% if u._expires_in == 0 %}
+                <span class="text-danger text-sm">Expired</span>
+              {% else %}
+                <span class="text-sm text-warning">{{ u._expires_in // 60 }}m {{ u._expires_in % 60 }}s</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted text-sm">Never</span>
+            {% endif %}
+          </td>
+          <td><span class="text-sm">{{ u.get('storage_quota_mb', 100) }} MB</span></td>
+          <td><span class="text-muted text-sm">{{ u.created_at | int }}</span></td>
+          <td>
+            <div class="d-flex gap-8 flex-wrap">
+              <a href="/users/{{ u.id }}/edit" class="btn btn-ghost btn-sm">✏️ Edit</a>
+              {% if u.role != 'admin' %}
+              <form method="POST" action="/users/{{ u.id }}/delete" style="display:inline"
+                    onsubmit="return confirm('Delete user {{ u.username }}? This cannot be undone.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

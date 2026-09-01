@@ -1,0 +1,65 @@
+{% extends "admin_base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="page-title">Notifications</div>
+<div class="page-subtitle">
+  Get alerted on this device when a user sends a chat message.
+</div>
+
+{% if success %}
+<div class="alert alert-success mb-16" data-autodismiss>✅ {{ success }}</div>
+{% endif %}
+
+<div class="card mb-16" style="max-width:520px">
+  <div class="card-header">
+    <span class="card-title">📱 Termux Notifications</span>
+    <span class="badge {{ 'badge-success' if termux_available else 'badge-warning' }}">
+      {{ '✅ Available' if termux_available else '⚠️ Not detected' }}
+    </span>
+  </div>
+
+  {% if termux_available %}
+  <p class="text-muted text-sm mb-16">
+    A native Android notification fires whenever a user sends a chat
+    message — even while Termux is in the background. No browser tab
+    needs to be open for this to work.
+  </p>
+  {% else %}
+  <p class="text-muted text-sm mb-16">
+    <code class="text-mono">termux-notification</code> wasn't found. Install
+    the Termux:API app plus the companion package to enable this:
+  </p>
+  <div class="log-box mb-16" style="color:#7ee787">pkg install termux-api</div>
+  <p class="text-muted text-sm mb-16">
+    Then grant the Termux:API app notification permission in Android
+    settings. This page will detect it automatically on next visit.
+  </p>
+  {% endif %}
+
+  <form method="POST" action="/notifications">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-check mb-16">
+      <input type="checkbox" name="admin_notifications_enabled"
+             {{ 'checked' if settings.admin_notifications_enabled else '' }}
+             {{ 'disabled' if not termux_available else '' }}>
+      <span>Notify me about new chat messages from users</span>
+    </label>
+    <button type="submit" class="btn btn-primary" {{ 'disabled' if not termux_available else '' }}>
+      💾 Save Preference
+    </button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title mb-12">🌐 Browser Notifications (for users)</div>
+  <p class="text-muted text-sm">
+    Regular users connect remotely through the tunnel, so Termux
+    notifications on this device can't reach them. Instead, each user can
+    enable <strong>browser notifications</strong> from their own
+    Settings page — these fire natively in their browser whenever you
+    reply to their chat thread, independent of this Termux instance.
+  </p>
+</div>
+{% endblock %}

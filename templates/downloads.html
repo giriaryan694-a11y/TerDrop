@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Downloads{% endblock %}
+{% block page_title %}Downloads{% endblock %}
+
+{% block content %}
+<div class="page-title">Downloads</div>
+<div class="page-subtitle">Files the admin has shared with you.</div>
+
+{% if files %}
+<div class="file-grid">
+  {% for f in files %}
+  {% set ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else '' %}
+  {% set icon = '🖼️' if ext in ('jpg','jpeg','png','gif','webp','svg') else
+               '📹' if ext in ('mp4','mov','avi','mkv') else
+               '🎵' if ext in ('mp3','wav','ogg','flac') else
+               '📄' if ext in ('pdf',) else
+               '📦' if ext in ('zip','gz','tar','7z') else
+               '📝' if ext in ('txt','md','csv','json') else '📁' %}
+
+  <div class="file-card fade-in">
+    <div class="d-flex justify-between align-center">
+      <div class="file-icon">{{ icon }}</div>
+      {% if f.encrypted %}
+      <span class="badge badge-success" title="End-to-end encrypted">🔒</span>
+      {% endif %}
+    </div>
+    <div class="file-name" title="{{ f.filename }}">
+      {{ f.filename[:32] }}{% if f.filename|length > 32 %}…{% endif %}
+    </div>
+    <div class="file-meta">
+      {{ (f._display_size / 1048576)|round(2) }} MB
+      · {{ f._display_mime.split('/')[0] }}
+    </div>
+    <div class="file-meta text-muted" style="font-size:0.72rem">
+      Shared by {{ f._owner_name }} · {{ f._uploaded_str }}
+    </div>
+    <div class="file-actions">
+      <a href="{{ url_for('download', file_id=f.id) }}" class="btn btn-primary btn-sm">
+        ⬇ Download
+      </a>
+      {% if f._display_mime.startswith('image') or f._display_mime == 'application/pdf' or f._display_mime.startswith('text') %}
+      <a href="{{ url_for('view_file', file_id=f.id) }}" target="_blank" class="btn btn-ghost btn-sm">
+        👁 View
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state card">
+  <div class="empty-icon">📬</div>
+  <p>Nothing has been shared with you yet.</p>
+  <p class="text-muted text-sm mt-4">Files the admin shares with you will show up here.</p>
+</div>
+{% endif %}
+{% endblock %}

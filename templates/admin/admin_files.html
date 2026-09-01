@@ -1,0 +1,80 @@
+{% extends "admin_base.html" %}
+{% block title %}Files{% endblock %}
+{% block page_title %}File Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-between align-center mb-16 flex-wrap gap-12">
+  <div>
+    <div class="page-title" style="margin:0">All Files</div>
+    <div class="page-subtitle" style="margin:0">{{ files|length }} file(s) stored. Click Perms to manage access.</div>
+  </div>
+  <a href="/upload" class="btn btn-primary">⬆️ Upload a File</a>
+</div>
+
+{% if files %}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Filename</th>
+          <th>Owner</th>
+          <th>Size</th>
+          <th>Type</th>
+          <th>Lock</th>
+          <th>Uploaded</th>
+          <th>Access</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in files %}
+        <tr>
+          <td>
+            <div class="d-flex align-center gap-8">
+              {% set ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else '' %}
+              <span>{{ '🖼️' if ext in ('jpg','jpeg','png','gif','webp') else '📄' if ext == 'pdf' else '📦' if ext in ('zip','gz') else '📁' }}</span>
+              <span style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ f.filename }}">
+                {{ f.filename }}
+              </span>
+            </div>
+          </td>
+          <td><span class="text-mono text-sm">{{ f._owner_name }}</span></td>
+          <td><span class="text-sm">{{ (f._display_size / 1048576)|round(2) }} MB</span></td>
+          <td><span class="badge badge-muted">{{ f._display_mime.split('/')[0] }}</span></td>
+          <td>
+            {% if f.encrypted %}
+            <span class="badge badge-success" title="End-to-end encrypted — server decrypts on demand">🔒</span>
+            {% else %}
+            <span class="badge badge-muted" title="Stored as plaintext">🔓</span>
+            {% endif %}
+          </td>
+          <td><span class="text-muted text-sm">{{ f._uploaded_str }}</span></td>
+          <td>
+            <span class="badge badge-primary">{{ f._perms|length }} user(s)</span>
+          </td>
+          <td>
+            <div class="d-flex gap-8">
+              <a href="/download/{{ f.id }}" class="btn btn-ghost btn-sm">⬇ Download</a>
+              <a href="/files/{{ f.id }}/perms" class="btn btn-ghost btn-sm">🔐 Perms</a>
+              <form method="POST" action="/files/{{ f.id }}/delete"
+                    onsubmit="return confirm('Permanently delete {{ f.filename }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state card">
+  <div class="empty-icon">📭</div>
+  <p>No files uploaded yet.</p>
+  <a href="/upload" class="btn btn-primary mt-12">⬆️ Upload a File</a>
+</div>
+{% endif %}
+{% endblock %}

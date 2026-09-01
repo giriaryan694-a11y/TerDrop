@@ -1,0 +1,106 @@
+{% extends "admin_base.html" %}
+{% block title %}Tunnel Control{% endblock %}
+{% block page_title %}Cloudflare Tunnel{% endblock %}
+
+{% block content %}
+<div class="page-title">Tunnel Control</div>
+<div class="page-subtitle">
+  Manage the Cloudflare quick-tunnel. Restarting issues a new public URL.
+</div>
+
+<!-- Status card -->
+<div class="card mb-16">
+  <div class="card-header">
+    <span class="card-title">Status</span>
+    <span class="badge {{ 'badge-success' if status.running else 'badge-danger' }}">
+      {{ '🟢 Online' if status.running else '🔴 Offline' }}
+    </span>
+  </div>
+
+  <div class="tunnel-url-box">
+    <span class="dot {{ 'dot-green pulse' if status.running else 'dot-red' }}" id="tunnelDot"></span>
+    <span id="tunnelUrl" style="flex:1">
+      {{ status.url or ('Waiting for URL…' if status.running else 'Tunnel is not running') }}
+    </span>
+    {% if status.url %}
+    <button class="btn btn-ghost btn-sm" onclick="copyText('{{ status.url }}', this)">📋 Copy URL</button>
+    <a href="{{ status.url }}" target="_blank" class="btn btn-ghost btn-sm">🔗 Open</a>
+    {% endif %}
+  </div>
+
+  {% if status.pid %}
+  <div class="text-muted text-sm mt-8">PID: {{ status.pid }}
+    {% if status.started_at %} · Started {{ status.started_at | int }}{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- QR code -->
+<div class="card mb-16">
+  <div class="card-title mb-16">📲 Share via QR</div>
+  <div class="d-flex gap-16 align-center flex-wrap">
+    <div id="qrcode" data-initial-url="{{ status.url or '' }}" style="background:#fff;padding:10px;border-radius:var(--radius-sm);line-height:0;min-height:160px;min-width:160px;display:flex;align-items:center;justify-content:center">
+      {% if not status.running or not status.url %}
+      <span class="text-muted text-sm" style="color:#999">No active link</span>
+      {% endif %}
+    </div>
+    <p class="text-muted text-sm" style="flex:1;min-width:200px">
+      Scan to open the current public link on another device. Updates
+      automatically the moment you start, stop, or restart the tunnel —
+      no page refresh needed.
+    </p>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="card mb-16">
+  <div class="card-title mb-16">⚙️ Controls</div>
+  <div class="d-flex gap-12 flex-wrap">
+    <button id="tunnelStart" class="btn btn-success btn-lg"
+            {% if status.running %}disabled{% endif %}>
+      ▶ Start Tunnel
+    </button>
+    <button id="tunnelStop" class="btn btn-danger btn-lg"
+            {% if not status.running %}disabled{% endif %}>
+      ■ Stop Tunnel
+    </button>
+    <button id="tunnelRestart" class="btn btn-ghost btn-lg">
+      ↺ Restart (New URL)
+    </button>
+  </div>
+  <div class="alert alert-info mt-16" style="font-size:0.82rem">
+    ℹ️ <strong>Restart</strong> terminates the current tunnel and reconnects — generating a brand-new public URL. Share the new URL with users after restarting.
+  </div>
+</div>
+
+<!-- Live status -->
+<div class="card mb-16">
+  <div class="card-header">
+    <span class="card-title">📡 Live Status</span>
+    <span class="text-muted text-sm" id="lastPoll">Polling every 5s…</span>
+  </div>
+  <div id="liveStatus">
+    <div class="d-flex gap-12 align-center">
+      <span class="badge {{ 'badge-success' if status.running else 'badge-danger' }}" id="liveBadge">
+        {{ '🟢 Running' if status.running else '🔴 Stopped' }}
+      </span>
+      <span class="text-mono text-sm" id="liveUrl">{{ status.url or '—' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tunnel log -->
+<div class="card">
+  <div class="card-title mb-12">📋 Output Log (last 50 lines)</div>
+  <div class="log-box" id="tunnelLog">
+    {% if log %}
+      {{ log | join('\n') }}
+    {% else %}
+      No output yet. Start the tunnel to see logs.
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

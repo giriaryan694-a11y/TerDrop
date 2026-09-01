@@ -1,0 +1,115 @@
+{% extends "admin_base.html" %}
+{% block title %}Share — {{ file_rec.filename }}{% endblock %}
+{% block page_title %}File Sharing{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center gap-12 mb-24">
+  <a href="/files" class="btn btn-ghost btn-sm">← Back</a>
+  <div>
+    <div class="page-title" style="margin:0">{{ file_rec.filename }}</div>
+    <div class="text-muted text-sm">
+      {{ ((file_rec.plaintext_size or file_rec.size_bytes) / 1048576)|round(2) }} MB
+      {% if file_rec.encrypted %}
+      · <span class="badge badge-success" style="vertical-align:middle">🔒 Encrypted</span>
+      {% else %}
+      · <span class="badge badge-muted" style="vertical-align:middle">🔓 Plaintext</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-error mb-16">⚠️ {{ error }}</div>{% endif %}
+{% if success %}<div class="alert alert-success mb-16" data-autodismiss>✅ {{ success }}</div>{% endif %}
+
+<div class="alert alert-info mb-16" style="font-size:0.82rem">
+  ℹ️ Only the person who uploaded this file and you (admin) can see it by
+  default. Sharing gives a user full access — they can both view and
+  download it. There's no partial "view only" mode.
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+
+  <!-- Grant Access -->
+  <div class="card">
+    <div class="card-title mb-16">🔓 Share With</div>
+
+    {% if users %}
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="grant">
+
+      <div class="form-group">
+        <label class="form-label">Select one or more users</label>
+        <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px">
+          {% for u in users %}
+          <label class="form-check mb-8">
+            <input type="checkbox" name="user_ids" value="{{ u.id }}">
+            <span>{{ u.username }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Access Expires In (minutes)</label>
+        <input type="number" name="expire_minutes" class="form-control"
+               placeholder="Leave blank for no expiry" min="1">
+        <div class="form-hint">e.g. 20 for 20 minutes, 60 for 1 hour.</div>
+      </div>
+
+      <button type="submit" class="btn btn-success">🔓 Share Selected</button>
+    </form>
+    {% else %}
+    <p class="text-muted text-sm">Every user already has access to this file.</p>
+    {% endif %}
+  </div>
+
+  <!-- Currently Shared With -->
+  <div class="card">
+    <div class="card-title mb-16">👥 Currently Shared With</div>
+    {% if perms %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Expires</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in perms %}
+          <tr>
+            <td><span class="text-mono text-sm">{{ p._username }}</span></td>
+            <td>
+              {% if p.expires_at %}
+                {% set rem = (p.expires_at - now)|int %}
+                <span class="{{ 'text-warning' if rem < 300 else 'text-muted' }} text-sm">
+                  {% if rem <= 0 %}Expired{% else %}{{ rem // 60 }}m{% endif %}
+                </span>
+              {% else %}
+                <span class="text-muted text-sm">Never</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="POST" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="revoke">
+                <input type="hidden" name="user_id" value="{{ p.user_id }}">
+                <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Revoke">🚫</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:24px">
+      <p class="text-muted">Only the uploader and admin can access this file so far.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
